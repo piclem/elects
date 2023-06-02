@@ -86,7 +86,7 @@ class VisdomLogger():
             plt.rcParams['figure.figsize'] = (9, 9)
             #sn.set(font_scale=1.4)  # for label size
             ax = sn.heatmap(cm, annot=True, annot_kws={"size": 11}, vmin=vmin, vmax=vmax)  # font size
-            ax.set(xlabel='ground truth', ylabel='predicted', title=title)
+            ax.set(xlabel='predicted', ylabel='ground truth', title=title)
             plt.tight_layout()
             opts = dict(
                 resizeable=True
