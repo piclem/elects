@@ -1,4 +1,4 @@
-from data import BavarianCrops, BreizhCrops, SustainbenchCrops, ModisCDL
+from data import BavarianCrops, BreizhCrops, SustainbenchCrops, ModisCDL, USACrops
 from torch.utils.data import DataLoader
 from earlyrnn import EarlyRNN
 import torch
@@ -10,10 +10,11 @@ import sklearn.metrics
 import pandas as pd
 import argparse
 import os
+from cloudpathlib import AnyPath
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run ELECTS Early Classification training on the BavarianCrops dataset.')
-    parser.add_argument('--dataset', type=str, default="bavariancrops", choices=["bavariancrops","breizhcrops", "ghana", "southsudan","unitedstates"], help="dataset")
+    parser.add_argument('--dataset', type=str, default="bavariancrops", choices=["bavariancrops","breizhcrops", "ghana", "southsudan","unitedstates", 'usacrops-small'], help="dataset")
     parser.add_argument('--alpha', type=float, default=0.5, help="trade-off parameter of earliness and accuracy (eq 6): "
                                                                  "1=full weight on accuracy; 0=full weight on earliness")
     parser.add_argument('--epsilon', type=float, default=10, help="additive smoothing parameter that helps the "
@@ -102,16 +103,22 @@ def main(args):
         train_ds = torch.utils.data.ConcatDataset([train_ds, val_ds])
         test_ds = SustainbenchCrops(root=dataroot, partition="val", sequencelength=args.sequencelength,
                                    country="southsudan", use_s2_only=use_s2_only)
+    elif args.dataset in ["usacrops-small", "usacrops"]:
+        dataroot = AnyPath(args.dataroot) / args.dataset
+        nclasses = 7
+        input_dim = 32
+        train_ds = USACrops(sample_root=dataroot / 'sample_level', metadata_root=dataroot / 'county_level', years=[2019,2020,2021], sequencelength=args.sequencelength, return_label_sequence=True)
+        test_ds = USACrops(sample_root=dataroot / 'sample_level', metadata_root=dataroot / 'county_level', years=[2022], sequencelength=args.sequencelength, return_label_sequence=True)
 
     else:
         raise ValueError(f"dataset {args.dataset} not recognized")
 
     traindataloader = DataLoader(
         train_ds,
-        batch_size=args.batchsize)
+        batch_size=args.batchsize, drop_last=True, shuffle=True)
     testdataloader = DataLoader(
         test_ds,
-        batch_size=args.batchsize)
+        batch_size=args.batchsize, drop_last=True)
 
     model = EarlyRNN(nclasses=nclasses, input_dim=input_dim).to(args.device)
 

@@ -6,13 +6,23 @@ import os
 #from models.EarlyClassificationModel import EarlyClassificationModel
 from torch.nn.modules.normalization import LayerNorm
 
+class SwitchTC(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return torch.transpose(x, -2,-1)
+
 class EarlyRNN(nn.Module):
     def __init__(self, input_dim=13, hidden_dims=64, nclasses=7, num_rnn_layers=2, dropout=0.2):
         super(EarlyRNN, self).__init__()
 
         # input transformations
         self.intransforms = nn.Sequential(
-            nn.LayerNorm(input_dim), # normalization over D-dimension. T-dimension is untouched
+            SwitchTC(),
+            # nn.LayerNorm(input_dim), # normalization over D-dimension. T-dimension is untouched
+            nn.BatchNorm1d(input_dim,),
+            SwitchTC(),
             nn.Linear(input_dim, hidden_dims) # project to hidden_dims length
         )
 
